@@ -1,3 +1,2 @@
-%%writefile requirements.txt
 torch
 streamlit
