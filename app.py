@@ -79,10 +79,11 @@ class MiniGPT(torch_nn.Module):
         x = self.ln_f(x)
         return self.head(x)
 
-d_model = 128
-n_head = 4
+# --- HIPERPARÁMETROS ACTUALIZADOS AL ENTRENAMIENTO ---
+d_model = 192
+n_head = 6
 n_layer = 4
-max_seq_len = 64
+max_seq_len = 128
 dropout = 0.1
 
 @st.cache_resource
@@ -90,7 +91,9 @@ def cargar_recursos():
     if not os.path.exists(FICHERO_PESOS) or not os.path.exists(FICHERO_VOCAB):
         return None, None, None, None
     with open(FICHERO_VOCAB, "r", encoding="utf-8") as f:
-        caracteres = json.load(f)["caracteres"]
+        contenido = json.load(f)
+        caracteres = contenido["caracteres"] if isinstance(contenido, dict) and "caracteres" in contenido else contenido
+        
     vocab_size = len(caracteres)
     char_a_int = {ch: i for i, ch in enumerate(caracteres)}
     int_a_char = {i: ch for i, ch in enumerate(caracteres)}
@@ -101,17 +104,18 @@ def cargar_recursos():
 
 modelo, char_a_int, int_a_char, vocab_size = cargar_recursos()
 
-st.title("🤖 Generador de Texto con MiniGPT")
-st.write("Interfaz web interactiva conectada a tus pesos de PyTorch.")
+st.title("🤖 Generador de Texto con FlariscaAI")
+st.write("Interfaz web interactiva para generar texto.")
+st.write("Parámetros: 1.84M")
 
 if modelo is None:
-    st.error("Error: No se encuentran 'modelo_pesos.pth' o 'vocabulario.json'.")
+    st.error("Error: No se encuentran 'modelo_pesos.pth' o 'vocabulario.json'. Asegúrate de haber entrenado el modelo primero.")
 else:
     st.sidebar.header("Configuración")
     caracteres_a_generar = st.sidebar.slider("Caracteres a generar", 50, 1000, 300, 50)
     temperatura = st.sidebar.slider("Temperatura", 0.1, 2.0, 1.0, 0.1)
 
-    prompt = st.text_input("Ingresa una frase inicial:", "Don Quijote")
+    prompt = st.text_input("Ingresa una frase inicial:", "En un lugar de la mancha")
 
     if st.button("Generar Texto", type="primary"):
         encode = lambda s: [char_a_int[c] for c in s if c in char_a_int]
