@@ -26,7 +26,6 @@ class AtencionCausal(torch_nn.Module):
         self.out_proj = torch_nn.Linear(d_model, d_model)
         self.attn_dropout = torch_nn.Dropout(dropout)
         self.res_dropout = torch_nn.Dropout(dropout)
-        self.register_buffer("mask", torch.tril(torch.ones(max_seq_len, max_seq_len)) == 0)
 
     def forward(self, x):
         B, T, C = x.size()
@@ -34,8 +33,13 @@ class AtencionCausal(torch_nn.Module):
         q = q.view(B, T, self.n_head, self.head_dim).transpose(1, 2)
         k = k.view(B, T, self.n_head, self.head_dim).transpose(1, 2)
         v = v.view(B, T, self.n_head, self.head_dim).transpose(1, 2)
+        
         att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(self.head_dim))
-        att = att.masked_fill(self.mask[:T, :T], float('-inf'))
+        
+        # Calculamos la máscara al vuelo exactamente igual que en el entrenamiento
+        mask = torch.tril(torch.ones(T, T, device=x.device)) == 0
+        att = att.masked_fill(mask, float('-inf'))
+        
         att = torch_functional.softmax(att, dim=-1)
         att = self.attn_dropout(att)
         y = att @ v
